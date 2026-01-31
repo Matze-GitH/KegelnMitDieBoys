@@ -1,4 +1,4 @@
-const CACHE = "kegeln-pwa-v12";
+const CACHE = "kegeln-pwa-v13";
 const FILES = [
   "./",
   "./index.html",

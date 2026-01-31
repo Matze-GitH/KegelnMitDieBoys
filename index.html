@@ -77,8 +77,7 @@
     .print-meta { font-size:13.5px; color:#111; display:flex; gap:18px; flex-wrap:wrap; }
     .print-meta strong { font-weight:700; }
     .print-divider { height:2px; background:#111; opacity:.12; border-radius: 999px; margin: 10px 0 14px; }
-    .kegel-badge { width:78px; height:78px; }
-    .kegel-watermark { position: fixed; right: 14px; bottom: 14px; width: 180px; height: 180px; opacity: .06; }
+.kegel-watermark { position: fixed; right: 14px; bottom: 14px; width: 180px; height: 180px; opacity: .06; }
 
 </style>
 </head>
@@ -100,40 +99,7 @@
           <div><strong>Gesamtsumme:</strong> <span id="printTotal"></span></div>
         </div>
       </div>
-
-      <!-- Kegel (9-Pin) Badge – stilisiert (kein Bowling) -->
-      <svg class="kegel-badge" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="Kegel Symbol">
-        <defs>
-          <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#ffffff"/>
-            <stop offset="1" stop-color="#e9e9e9"/>
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="120" height="120" rx="24" fill="#ffffff" opacity="0.0"/>
-        <!-- 9 stilisierte Kegel als Tropfen -->
-        <g transform="translate(8,10)" fill="url(#g)" stroke="#111" stroke-width="2" opacity="0.95">
-          <!-- Row 1 -->
-          <path d="M52 6 C45 18, 40 28, 40 38 C40 49, 46 58, 52 58 C58 58, 64 49, 64 38 C64 28, 59 18, 52 6 Z"/>
-          <!-- Row 2 -->
-          <path d="M32 18 C26 28, 22 36, 22 45 C22 55, 28 63, 32 63 C37 63, 43 55, 43 45 C43 36, 39 28, 32 18 Z"/>
-          <path d="M72 18 C66 28, 61 36, 61 45 C61 55, 67 63, 72 63 C77 63, 83 55, 83 45 C83 36, 79 28, 72 18 Z"/>
-          <!-- Row 3 -->
-          <path d="M18 34 C13 42, 10 49, 10 57 C10 66, 15 73, 18 73 C22 73, 27 66, 27 57 C27 49, 24 42, 18 34 Z"/>
-          <path d="M46 34 C40 44, 36 51, 36 60 C36 70, 42 78, 46 78 C51 78, 57 70, 57 60 C57 51, 53 44, 46 34 Z"/>
-          <path d="M74 34 C68 44, 64 51, 64 60 C64 70, 70 78, 74 78 C79 78, 85 70, 85 60 C85 51, 81 44, 74 34 Z"/>
-          <path d="M102 34 C97 42, 94 49, 94 57 C94 66, 99 73, 102 73 C106 73, 111 66, 111 57 C111 49, 108 42, 102 34 Z"/>
-          <!-- Row 4 -->
-          <path d="M30 58 C25 66, 22 73, 22 80 C22 89, 27 96, 30 96 C34 96, 39 89, 39 80 C39 73, 36 66, 30 58 Z"/>
-          <path d="M74 58 C69 66, 66 73, 66 80 C66 89, 71 96, 74 96 C78 96, 83 89, 83 80 C83 73, 80 66, 74 58 Z"/>
-          <!-- Red bands (classic kegel look) -->
-          <g fill="#c62828" stroke="none" opacity="0.85">
-            <rect x="26" y="74" width="8" height="4" rx="2"/>
-            <rect x="70" y="74" width="8" height="4" rx="2"/>
-            <rect x="50" y="42" width="8" height="4" rx="2"/>
-          </g>
-        </g>
-      </svg>
-    </div>
+</div>
 
     <div class="print-divider"></div>
 
