@@ -102,8 +102,7 @@
   <div class="evaluation">
     <h2>Auswertung – Meiste Strafen zuerst</h2>
     <div id="evaluationList"></div>
-    <div class="muted no-print">iPhone: Nach „PDF exportieren“ im Druck-Dialog PDF öffnen → Teilen → „In Dateien sichern“.</div>
-  </div>
+</div>
 
   <!-- Settings Modal -->
   <div class="modal hidden no-print" id="settingsModal" role="dialog" aria-modal="true" aria-label="Sound Einstellungen">
@@ -134,12 +133,12 @@
         <label for="soundCorr">Bei <strong>Korrektur (-0,10 €)</strong></label>
       </div>
 
-      <div class="hint">Hinweis: Auf dem iPhone spielt Audio nur ab, wenn es einmal durch eine Nutzeraktion „freigeschaltet“ wurde (passiert automatisch beim ersten Tap).</div>
+      <div class="hint">Fix für iPhone: Der Sound wird beim ersten Tap „vorgeladen“, damit er sofort beim ersten 1€-Klick kommt.</div>
     </div>
   </div>
 
   <script>
-    // --- DOM sicher holen (wichtig für iPhone/Safari) ---
+    // --- DOM ---
     const nameInput = document.getElementById("nameInput");
     const addBtn = document.getElementById("addBtn");
     const resetBtn = document.getElementById("resetBtn");
@@ -163,9 +162,9 @@
 
     // --- Storage Keys ---
     const STORAGE_KEY = "kegeln_players_v1";
-    const SOUND_KEY = "kegeln_sound_settings_v2";
+    const SOUND_KEY = "kegeln_sound_settings_v3";
 
-    // --- Players (Geld als CENTS / Integer) ---
+    // --- Players ---
     let players = loadPlayers();
 
     function loadPlayers() {
@@ -180,10 +179,7 @@
         return [];
       }
     }
-    function savePlayers() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
-    }
-
+    function savePlayers() { localStorage.setItem(STORAGE_KEY, JSON.stringify(players)); }
     function centsToEuro(cents) { return (cents / 100).toFixed(2) + " €"; }
     function totalCents() { return players.reduce((sum, p) => sum + (p.cents || 0), 0); }
 
@@ -196,43 +192,63 @@
     corrSound.preload = "auto";
     corrSound.volume = 0.9;
 
-    let audioUnlocked = false;
-    function unlockAudioOnce() {
-      if (audioUnlocked) return;
-      audioUnlocked = true;
+    // iPhone-Prime: beim ersten Tap Audio "warm machen"
+    let audioPrimed = false;
 
-      // iOS: unlock each Audio element
-      [cashSound, corrSound].forEach(a => {
-        try {
-          a.play().then(() => {
-            a.pause();
-            a.currentTime = 0;
-          }).catch(() => {});
-        } catch {}
-      });
-    }
-    document.addEventListener("touchstart", unlockAudioOnce, { once: true });
-    document.addEventListener("click", unlockAudioOnce, { once: true });
-
-    function playAudio(a) {
+    function safeResetToStart(a) {
       try {
-        a.currentTime = 0;
-        a.play().catch(() => {});
+        // iOS zickt manchmal, wenn man currentTime setzt bevor Metadata da ist.
+        if (a.readyState >= 2) a.currentTime = 0;
       } catch {}
     }
 
-    function playCashIfEnabled(deltaCents) {
-      if (deltaCents <= 0) return; // nur bei Geld-Plus
-      if (!shouldPlayCash(deltaCents)) return;
-      playAudio(cashSound);
+    function safePlay(a, {prime=false} = {}) {
+      try {
+        a.pause();
+      } catch {}
+
+      // Beim Prime: lautlos abspielen, damit iOS das File wirklich lädt
+      const prevVol = a.volume;
+      if (prime) a.volume = 0;
+
+      safeResetToStart(a);
+
+      const p = a.play();
+      if (p && p.then) {
+        p.then(() => {
+          if (prime) {
+            setTimeout(() => {
+              try { a.pause(); } catch {}
+              safeResetToStart(a);
+              a.volume = prevVol;
+            }, 60);
+          }
+        }).catch(() => {
+          // restore volume if play blocked
+          if (prime) a.volume = prevVol;
+        });
+      } else {
+        if (prime) a.volume = prevVol;
+      }
     }
 
-    function playCorrectionIfEnabled(deltaCents) {
-      if (deltaCents >= 0) return;
-      if (!soundSettings.corr) return;
-      // Wir spielen nur bei der -0,10 Korrektur (falls du später mal andere Korrekturen einbaust)
-      if (Math.abs(deltaCents) !== 10) return;
-      playAudio(corrSound);
+    function primeAudioOnce() {
+      if (audioPrimed) return;
+      audioPrimed = true;
+      // primen (lautlos) – wichtig für "erster Klick spielt nicht"
+      safePlay(cashSound, {prime:true});
+      safePlay(corrSound, {prime:true});
+    }
+
+    document.addEventListener("touchstart", primeAudioOnce, { once: true });
+    document.addEventListener("click", primeAudioOnce, { once: true });
+
+    function playCashNow() {
+      // hier normal (mit Lautstärke)
+      safePlay(cashSound, {prime:false});
+    }
+    function playCorrNow() {
+      safePlay(corrSound, {prime:false});
     }
 
     // --- Sound Settings ---
@@ -256,9 +272,7 @@
       }
     }
 
-    function saveSoundSettings() {
-      localStorage.setItem(SOUND_KEY, JSON.stringify(soundSettings));
-    }
+    function saveSoundSettings() { localStorage.setItem(SOUND_KEY, JSON.stringify(soundSettings)); }
 
     function applySoundSettingsToUI() {
       soundAll.checked = soundSettings.all;
@@ -267,12 +281,10 @@
       sound100.checked = soundSettings.c100;
       soundCorr.checked = soundSettings.corr;
 
-      // Wenn "all" an ist, Einzeloptionen deaktivieren (betrifft nur Geld-Sounds)
       const disableSingles = soundSettings.all;
       sound10.disabled = disableSingles;
       sound50.disabled = disableSingles;
       sound100.disabled = disableSingles;
-      // soundCorr bleibt immer bedienbar
       soundCorr.disabled = false;
     }
 
@@ -287,9 +299,7 @@
     function onSoundToggle() {
       soundSettings.all = soundAll.checked;
       if (soundSettings.all) {
-        soundSettings.c10 = true;
-        soundSettings.c50 = true;
-        soundSettings.c100 = true;
+        soundSettings.c10 = true; soundSettings.c50 = true; soundSettings.c100 = true;
       } else {
         soundSettings.c10 = sound10.checked;
         soundSettings.c50 = sound50.checked;
@@ -299,6 +309,11 @@
 
       saveSoundSettings();
       applySoundSettingsToUI();
+    }
+
+    function playIfEnabled(deltaCents) {
+      if (deltaCents > 0 && shouldPlayCash(deltaCents)) playCashNow();
+      if (deltaCents < 0 && soundSettings.corr && Math.abs(deltaCents) === 10) playCorrNow();
     }
 
     // --- App Actions ---
@@ -312,8 +327,7 @@
     }
 
     function updateCents(index, delta) {
-      playCashIfEnabled(delta);
-      playCorrectionIfEnabled(delta);
+      playIfEnabled(delta);
       players[index].cents = Math.max(0, players[index].cents + delta);
       savePlayers();
       render();
@@ -387,47 +401,36 @@
       });
     }
 
-    function render() {
-      renderPlayers();
-      renderEvaluation();
-    }
+    function render() { renderPlayers(); renderEvaluation(); }
 
     // --- Settings Modal ---
     function openSettings() {
-      unlockAudioOnce(); // iOS: unlock on open
+      primeAudioOnce(); // iPhone: prime on open
       settingsModal.classList.remove("hidden");
     }
-    function closeSettingsModal() {
-      settingsModal.classList.add("hidden");
-    }
+    function closeSettingsModal() { settingsModal.classList.add("hidden"); }
 
     settingsBtn.addEventListener("click", openSettings);
     closeSettings.addEventListener("click", closeSettingsModal);
-    settingsModal.addEventListener("click", (e) => {
-      if (e.target === settingsModal) closeSettingsModal();
-    });
+    settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) closeSettingsModal(); });
     settingsCard.addEventListener("click", (e) => e.stopPropagation());
 
-    // Sound checkbox events
     soundAll.addEventListener("change", onSoundToggle);
     sound10.addEventListener("change", onSoundToggle);
     sound50.addEventListener("change", onSoundToggle);
     sound100.addEventListener("change", onSoundToggle);
     soundCorr.addEventListener("change", onSoundToggle);
 
-    // --- Buttons ---
     addBtn.addEventListener("click", addPlayer);
     resetBtn.addEventListener("click", resetAllData);
     pdfBtn.addEventListener("click", exportPDF);
     nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addPlayer(); });
 
-    // Init UI + render
     applySoundSettingsToUI();
     render();
   </script>
 
   <script>
-    // PWA: Service Worker registrieren
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js");
     }
