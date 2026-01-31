@@ -1,11 +1,13 @@
-const CACHE = "kegeln-pwa-v3";
+const CACHE = "kegeln-pwa-v7";
 const FILES = [
   "./",
   "./index.html",
   "./manifest.json",
   "./sw.js",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./sounds/cash.mp3",
+  "./sounds/korrektur.mp3"
 ];
 
 self.addEventListener("install", (e) => {

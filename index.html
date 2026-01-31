@@ -14,16 +14,24 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <style>
-    :root { --bg:#111; --card:#222; --card2:#1b1b1b; --btn:#444; --ok:#28a745; --bad:#a83232; --line:#333; --muted:#aaa; }
+    :root { --bg:#111; --card:#222; --card2:#1b1b1b; --btn:#444; --ok:#28a745; --bad:#a83232; --reset:#666; --export:#0d6efd; --settings:#8a2be2; --line:#333; --muted:#aaa; }
     body { font-family: Arial, sans-serif; background: var(--bg); color:#fff; margin:0; padding: 15px; }
-    .topbar { display:flex; align-items:center; gap:12px; justify-content:center; margin: 6px 0 16px; }
+
+    .topbar { display:flex; align-items:center; gap:12px; justify-content:center; margin: 6px 0 12px; }
     .topbar img { width:52px; height:52px; border-radius:14px; background: var(--bg); box-shadow: 0 4px 18px rgba(0,0,0,.25); }
     h1 { margin:0; text-align:center; font-size:20px; line-height:1.2; }
     h2 { text-align:center; margin:0 0 10px; }
 
+    .toolbar { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin: 0 0 14px; }
+    .toolbar button { width: 100%; max-width: 520px; }
+    button { padding:12px; font-size:16px; border-radius:12px; border:none; cursor:pointer; }
+    .reset-btn { background: var(--reset); color:#fff; }
+    .pdf-btn { background: var(--export); color:#fff; }
+    .settings-btn { background: var(--settings); color:#fff; }
+    .toolbar button:active { transform: scale(0.99); }
+
     .add-player { display:flex; gap:10px; margin: 14px 0 20px; }
     input { flex:1; padding:12px; font-size:16px; border-radius:12px; border:none; outline:none; }
-    button { padding:12px; font-size:16px; border-radius:12px; border:none; cursor:pointer; }
     .add-btn { background: var(--ok); color:#fff; min-width: 120px; }
 
     .player { background: var(--card); padding:15px; border-radius:16px; margin-bottom:14px; }
@@ -36,37 +44,128 @@
     .evaluation { background: var(--card2); padding:15px; border-radius:16px; margin-top:24px; }
     .eval-item { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); }
     .muted { color: var(--muted); text-align:center; margin: 8px 0 0; font-size: 13px; line-height: 1.3; }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(0,0,0,.6); }
+    .modal.hidden { display: none; }
+    .modal-card { width: 100%; max-width: 560px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+    .modal-title { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: 8px; }
+    .modal-title h3 { margin: 0; font-size: 18px; }
+    .close-x { background: transparent; color: #fff; font-size: 22px; line-height: 1; padding: 8px 10px; }
+    .option { display:flex; align-items:center; gap:10px; padding: 10px 8px; border-bottom: 1px solid #2a2a2a; }
+    .option:last-child { border-bottom: none; }
+    .option input { width: 20px; height: 20px; }
+    .option label { font-size: 16px; }
+    .hint { color: var(--muted); font-size: 13px; line-height: 1.3; margin-top: 10px; }
+
+    /* Print/PDF */
+    .print-only { display:none; }
+    @media print {
+      body { background:#fff; color:#000; padding: 18px; }
+      .no-print { display:none !important; }
+      .print-only { display:block !important; }
+      .evaluation { background: transparent; border: 1px solid #ddd; }
+      .eval-item { border-bottom: 1px solid #ddd; }
+      h1, h2 { color:#000; }
+    }
   </style>
 </head>
 
 <body>
-  <div class="topbar">
+  <div class="topbar no-print">
     <img src="icons/icon-192.png" alt="Kegeln mit die Boys Icon">
     <h1>Kegeln mit die Boys - Strafen</h1>
   </div>
 
-  <div class="add-player">
+  <!-- Print header -->
+  <div class="print-only">
+    <h1>Kegeln mit die Boys - Strafen</h1>
+    <div style="margin:8px 0 14px; font-size:14px;">
+      <div><strong>Datum:</strong> <span id="printDate"></span></div>
+      <div><strong>Gesamtsumme:</strong> <span id="printTotal"></span></div>
+    </div>
+  </div>
+
+  <div class="toolbar no-print">
+    <button class="pdf-btn" id="pdfBtn">PDF exportieren</button>
+    <button class="settings-btn" id="settingsBtn">⚙️ Sound</button>
+    <button class="reset-btn" id="resetBtn">Alles zurücksetzen</button>
+  </div>
+
+  <div class="add-player no-print">
     <input type="text" id="nameInput" placeholder="Name eingeben" autocomplete="off" inputmode="text">
     <button class="add-btn" id="addBtn">Hinzufügen</button>
   </div>
 
-  <div id="players"></div>
+  <div id="players" class="no-print"></div>
 
   <div class="evaluation">
     <h2>Auswertung – Meiste Strafen zuerst</h2>
     <div id="evaluationList"></div>
-    <div class="muted">iPhone-Tipp: Öffne die Seite in Safari → Teilen → „Zum Home-Bildschirm“.</div>
+    <div class="muted no-print">iPhone: Nach „PDF exportieren“ im Druck-Dialog PDF öffnen → Teilen → „In Dateien sichern“.</div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal hidden no-print" id="settingsModal" role="dialog" aria-modal="true" aria-label="Sound Einstellungen">
+    <div class="modal-card" id="settingsCard">
+      <div class="modal-title">
+        <h3>Sound Einstellungen</h3>
+        <button class="close-x" id="closeSettings" aria-label="Schließen">×</button>
+      </div>
+
+      <div class="option">
+        <input type="checkbox" id="soundAll">
+        <label for="soundAll"><strong>Bei allen Geld-Buttons abspielen</strong></label>
+      </div>
+      <div class="option">
+        <input type="checkbox" id="sound10">
+        <label for="sound10">Bei <strong>0,10 €</strong></label>
+      </div>
+      <div class="option">
+        <input type="checkbox" id="sound50">
+        <label for="sound50">Bei <strong>0,50 €</strong></label>
+      </div>
+      <div class="option">
+        <input type="checkbox" id="sound100">
+        <label for="sound100">Bei <strong>1,00 €</strong></label>
+      </div>
+      <div class="option">
+        <input type="checkbox" id="soundCorr">
+        <label for="soundCorr">Bei <strong>Korrektur (-0,10 €)</strong></label>
+      </div>
+
+      <div class="hint">Hinweis: Auf dem iPhone spielt Audio nur ab, wenn es einmal durch eine Nutzeraktion „freigeschaltet“ wurde (passiert automatisch beim ersten Tap).</div>
+    </div>
   </div>
 
   <script>
     // --- DOM sicher holen (wichtig für iPhone/Safari) ---
     const nameInput = document.getElementById("nameInput");
     const addBtn = document.getElementById("addBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const pdfBtn = document.getElementById("pdfBtn");
+    const settingsBtn = document.getElementById("settingsBtn");
+
     const playersDiv = document.getElementById("players");
     const evaluationList = document.getElementById("evaluationList");
+    const printDate = document.getElementById("printDate");
+    const printTotal = document.getElementById("printTotal");
 
-    // --- Geld als CENTS (Integer) speichern: 10, 50, 100 ---
+    const settingsModal = document.getElementById("settingsModal");
+    const settingsCard = document.getElementById("settingsCard");
+    const closeSettings = document.getElementById("closeSettings");
+
+    const soundAll = document.getElementById("soundAll");
+    const sound10 = document.getElementById("sound10");
+    const sound50 = document.getElementById("sound50");
+    const sound100 = document.getElementById("sound100");
+    const soundCorr = document.getElementById("soundCorr");
+
+    // --- Storage Keys ---
     const STORAGE_KEY = "kegeln_players_v1";
+    const SOUND_KEY = "kegeln_sound_settings_v2";
+
+    // --- Players (Geld als CENTS / Integer) ---
     let players = loadPlayers();
 
     function loadPlayers() {
@@ -81,19 +180,131 @@
         return [];
       }
     }
-
     function savePlayers() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
     }
 
-    function centsToEuro(cents) {
-      return (cents / 100).toFixed(2) + " €";
+    function centsToEuro(cents) { return (cents / 100).toFixed(2) + " €"; }
+    function totalCents() { return players.reduce((sum, p) => sum + (p.cents || 0), 0); }
+
+    // --- Sound Setup (2 sounds) ---
+    const cashSound = new Audio("sounds/cash.mp3");
+    cashSound.preload = "auto";
+    cashSound.volume = 0.9;
+
+    const corrSound = new Audio("sounds/korrektur.mp3");
+    corrSound.preload = "auto";
+    corrSound.volume = 0.9;
+
+    let audioUnlocked = false;
+    function unlockAudioOnce() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+
+      // iOS: unlock each Audio element
+      [cashSound, corrSound].forEach(a => {
+        try {
+          a.play().then(() => {
+            a.pause();
+            a.currentTime = 0;
+          }).catch(() => {});
+        } catch {}
+      });
+    }
+    document.addEventListener("touchstart", unlockAudioOnce, { once: true });
+    document.addEventListener("click", unlockAudioOnce, { once: true });
+
+    function playAudio(a) {
+      try {
+        a.currentTime = 0;
+        a.play().catch(() => {});
+      } catch {}
     }
 
+    function playCashIfEnabled(deltaCents) {
+      if (deltaCents <= 0) return; // nur bei Geld-Plus
+      if (!shouldPlayCash(deltaCents)) return;
+      playAudio(cashSound);
+    }
+
+    function playCorrectionIfEnabled(deltaCents) {
+      if (deltaCents >= 0) return;
+      if (!soundSettings.corr) return;
+      // Wir spielen nur bei der -0,10 Korrektur (falls du später mal andere Korrekturen einbaust)
+      if (Math.abs(deltaCents) !== 10) return;
+      playAudio(corrSound);
+    }
+
+    // --- Sound Settings ---
+    const defaultSoundSettings = { all: true, c10: true, c50: true, c100: true, corr: true };
+    let soundSettings = loadSoundSettings();
+
+    function loadSoundSettings() {
+      try {
+        const raw = localStorage.getItem(SOUND_KEY);
+        if (!raw) return { ...defaultSoundSettings };
+        const s = JSON.parse(raw);
+        return {
+          all: !!s.all,
+          c10: !!s.c10,
+          c50: !!s.c50,
+          c100: !!s.c100,
+          corr: (s.corr === undefined) ? true : !!s.corr
+        };
+      } catch {
+        return { ...defaultSoundSettings };
+      }
+    }
+
+    function saveSoundSettings() {
+      localStorage.setItem(SOUND_KEY, JSON.stringify(soundSettings));
+    }
+
+    function applySoundSettingsToUI() {
+      soundAll.checked = soundSettings.all;
+      sound10.checked = soundSettings.c10;
+      sound50.checked = soundSettings.c50;
+      sound100.checked = soundSettings.c100;
+      soundCorr.checked = soundSettings.corr;
+
+      // Wenn "all" an ist, Einzeloptionen deaktivieren (betrifft nur Geld-Sounds)
+      const disableSingles = soundSettings.all;
+      sound10.disabled = disableSingles;
+      sound50.disabled = disableSingles;
+      sound100.disabled = disableSingles;
+      // soundCorr bleibt immer bedienbar
+      soundCorr.disabled = false;
+    }
+
+    function shouldPlayCash(deltaCents) {
+      if (soundSettings.all) return true;
+      if (deltaCents === 10) return soundSettings.c10;
+      if (deltaCents === 50) return soundSettings.c50;
+      if (deltaCents === 100) return soundSettings.c100;
+      return false;
+    }
+
+    function onSoundToggle() {
+      soundSettings.all = soundAll.checked;
+      if (soundSettings.all) {
+        soundSettings.c10 = true;
+        soundSettings.c50 = true;
+        soundSettings.c100 = true;
+      } else {
+        soundSettings.c10 = sound10.checked;
+        soundSettings.c50 = sound50.checked;
+        soundSettings.c100 = sound100.checked;
+      }
+      soundSettings.corr = soundCorr.checked;
+
+      saveSoundSettings();
+      applySoundSettingsToUI();
+    }
+
+    // --- App Actions ---
     function addPlayer() {
       const name = nameInput.value.trim();
       if (!name) return;
-
       players.push({ name, cents: 0 });
       nameInput.value = "";
       savePlayers();
@@ -101,14 +312,31 @@
     }
 
     function updateCents(index, delta) {
+      playCashIfEnabled(delta);
+      playCorrectionIfEnabled(delta);
       players[index].cents = Math.max(0, players[index].cents + delta);
       savePlayers();
       render();
     }
 
+    function resetAllData() {
+      const ok = confirm("Wirklich alles zurücksetzen? (Alle Namen & Strafen werden gelöscht)");
+      if (!ok) return;
+      players = [];
+      localStorage.removeItem(STORAGE_KEY);
+      render();
+    }
+
+    function exportPDF() {
+      const now = new Date();
+      printDate.textContent = now.toLocaleString("de-DE");
+      printTotal.textContent = centsToEuro(totalCents());
+      window.print();
+    }
+
+    // --- Render ---
     function renderPlayers() {
       playersDiv.innerHTML = "";
-
       players.forEach((p, i) => {
         const card = document.createElement("div");
         card.className = "player";
@@ -151,11 +379,10 @@
     function renderEvaluation() {
       evaluationList.innerHTML = "";
       const sorted = [...players].sort((a, b) => b.cents - a.cents);
-
-      sorted.forEach(p => {
+      sorted.forEach((p, idx) => {
         const row = document.createElement("div");
         row.className = "eval-item";
-        row.innerHTML = `<span>${p.name}</span><span>${centsToEuro(p.cents)}</span>`;
+        row.innerHTML = `<span>${idx+1}. ${p.name}</span><span>${centsToEuro(p.cents)}</span>`;
         evaluationList.appendChild(row);
       });
     }
@@ -165,11 +392,37 @@
       renderEvaluation();
     }
 
-    addBtn.addEventListener("click", addPlayer);
-    nameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") addPlayer();
-    });
+    // --- Settings Modal ---
+    function openSettings() {
+      unlockAudioOnce(); // iOS: unlock on open
+      settingsModal.classList.remove("hidden");
+    }
+    function closeSettingsModal() {
+      settingsModal.classList.add("hidden");
+    }
 
+    settingsBtn.addEventListener("click", openSettings);
+    closeSettings.addEventListener("click", closeSettingsModal);
+    settingsModal.addEventListener("click", (e) => {
+      if (e.target === settingsModal) closeSettingsModal();
+    });
+    settingsCard.addEventListener("click", (e) => e.stopPropagation());
+
+    // Sound checkbox events
+    soundAll.addEventListener("change", onSoundToggle);
+    sound10.addEventListener("change", onSoundToggle);
+    sound50.addEventListener("change", onSoundToggle);
+    sound100.addEventListener("change", onSoundToggle);
+    soundCorr.addEventListener("change", onSoundToggle);
+
+    // --- Buttons ---
+    addBtn.addEventListener("click", addPlayer);
+    resetBtn.addEventListener("click", resetAllData);
+    pdfBtn.addEventListener("click", exportPDF);
+    nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addPlayer(); });
+
+    // Init UI + render
+    applySoundSettingsToUI();
     render();
   </script>
 
