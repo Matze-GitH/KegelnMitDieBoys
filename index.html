@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kegeln mit die Boys - Strafen</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111111">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<style>
+body { font-family: Arial, sans-serif; background:#111; color:#fff; padding:15px; }
+h1,h2{text-align:center}
+.add-player{display:flex;gap:10px;margin-bottom:20px}
+input,button{padding:10px;font-size:16px;border-radius:6px;border:none}
+.add-btn{background:#28a745;color:#fff}
+.player{background:#222;padding:15px;border-radius:10px;margin-bottom:15px}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.controls button{flex:1;min-width:90px;background:#444;color:#fff}
+.correction{background:#a83232!important}
+.amount{margin-top:10px;font-weight:bold}
+.evaluation{background:#1b1b1b;padding:15px;border-radius:10px;margin-top:30px}
+.eval-item{display:flex;justify-content:space-between;border-bottom:1px solid #333;padding:6px 0}
+</style>
+</head>
+<body>
+
+<h1>Kegeln mit die Boys – Strafen</h1>
+
+<div class="add-player">
+<input id="nameInput" placeholder="Name eingeben">
+<button class="add-btn" onclick="addPlayer()">Hinzufügen</button>
+</div>
+
+<div id="players"></div>
+
+<div class="evaluation">
+<h2>Auswertung</h2>
+<div id="evaluationList"></div>
+</div>
+
+<script>
+let players = JSON.parse(localStorage.getItem("players")) || [];
+function save(){localStorage.setItem("players",JSON.stringify(players));}
+function addPlayer(){
+ const n=nameInput.value.trim(); if(!n)return;
+ players.push({name:n,amount:0}); nameInput.value="";
+ save(); render();
+}
+function updateAmount(i,v){
+ players[i].amount=Math.max(0,players[i].amount+v);
+ save(); render();
+}
+function render(){
+ playersDiv.innerHTML="";
+ players.forEach((p,i)=>{
+  playersDiv.innerHTML+=`
+   <div class="player">
+    <strong>${p.name}</strong>
+    <div class="controls">
+     <button onclick="updateAmount(${i},0.1)">+0,10€</button>
+     <button onclick="updateAmount(${i},0.5)">+0,50€</button>
+     <button onclick="updateAmount(${i},1)">+1,00€</button>
+     <button class="correction" onclick="updateAmount(${i},-0.1)">-0,10€</button>
+    </div>
+    <div class="amount">${p.amount.toFixed(2)} €</div>
+   </div>`;
+ });
+ evaluationList.innerHTML="";
+ [...players].sort((a,b)=>b.amount-a.amount)
+ .forEach(p=>evaluationList.innerHTML+=
+  `<div class="eval-item"><span>${p.name}</span><span>${p.amount.toFixed(2)} €</span></div>`);
+}
+render();
+</script>
+
+<script>
+if("serviceWorker"in navigator){navigator.serviceWorker.register("sw.js");}
+</script>
+</body>
+</html>
