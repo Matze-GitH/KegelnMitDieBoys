@@ -133,7 +133,7 @@
         <label for="soundCorr">Bei <strong>Korrektur (-0,10 €)</strong></label>
       </div>
 
-      <div class="hint">Fix für iPhone: Der Sound wird beim ersten Tap „vorgeladen“, damit er sofort beim ersten 1€-Klick kommt.</div>
+      <div class="hint">Sound wird beim ersten Tap vorgeladen, damit er sofort beim ersten Klick kommt.</div>
     </div>
   </div>
 
@@ -405,7 +405,7 @@
 
     // --- Settings Modal ---
     function openSettings() {
-      primeAudioOnce(); // iPhone: prime on open
+      primeAudioOnce();
       settingsModal.classList.remove("hidden");
     }
     function closeSettingsModal() { settingsModal.classList.add("hidden"); }
